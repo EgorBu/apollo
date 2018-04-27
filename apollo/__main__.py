@@ -96,6 +96,10 @@ def get_parser() -> argparse.ArgumentParser:
     add_cassandra_args(source2bags_parser)
     add_df_args(source2bags_parser)
     add_repartitioner_arg(source2bags_parser)
+    source2bags_parser.add_argument("--skip-metadata", action="store_false",
+                                    help="Skip saving metadata to cassandra.")
+    source2bags_parser.add_argument("--skip-bags-to-db", action="store_false",
+                                    help="Skip saving metadata to cassandra.")
 
     # ------------------------------------------------------------------------
     hash_parser = subparsers.add_parser(

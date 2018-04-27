@@ -27,6 +27,7 @@ def configure(args):
     except ValueError:
         cas_host = args.cassandra
         cas_port = "9042"
+    args.config = list(args.config)
     args.config.append("spark.cassandra.connection.host=" + cas_host)
     args.config.append("spark.cassandra.connection.port=" + cas_port)
     patch_tables(args)
@@ -71,18 +72,18 @@ def reset_db(args):
         db.set_keyspace(args.keyspace)
     tables = args.tables
     if not args.hashes_only:
-        cql("CREATE TABLE %s (sha1 ascii, item ascii, value float, PRIMARY KEY (sha1, item))"
+        cql("CREATE TABLE %s (sha1 text, item text, value float, PRIMARY KEY (sha1, item))"
             % tables["bags"])
-        cql("CREATE TABLE %s (sha1 ascii, repo text, commit ascii, path text, "
+        cql("CREATE TABLE %s (sha1 text, repo text, commit ascii, path text, "
             "PRIMARY KEY (sha1, repo, commit, path))" % tables["meta"])
     else:
         cql("DROP TABLE IF EXISTS %s" % tables["hashes"])
         cql("DROP TABLE IF EXISTS %s" % tables["hashtables"])
         cql("DROP TABLE IF EXISTS %s" % tables["hashtables2"])
-    cql("CREATE TABLE %s (sha1 ascii, value blob, PRIMARY KEY (sha1))" % tables["hashes"])
-    cql("CREATE TABLE %s (sha1 ascii, hashtable tinyint, value blob, "
+    cql("CREATE TABLE %s (sha1 text, value blob, PRIMARY KEY (sha1))" % tables["hashes"])
+    cql("CREATE TABLE %s (sha1 text, hashtable tinyint, value blob, "
         "PRIMARY KEY (hashtable, value, sha1))" % tables["hashtables"])
-    cql("CREATE TABLE %s (sha1 ascii, hashtable tinyint, value blob, "
+    cql("CREATE TABLE %s (sha1 text, hashtable tinyint, value blob, "
         "PRIMARY KEY (sha1, hashtable))" % tables["hashtables2"])
 
 

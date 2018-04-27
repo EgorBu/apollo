@@ -47,8 +47,19 @@ class MetadataSaver(Transformer):
 
 def source2bags(args):
     cassandra_utils.configure(args)
+
+    if not args.skip_metadata:
+        cache_hook = lambda: MetadataSaver(args.keyspace, args.tables["meta"])
+    else:
+        cache_hook = None
+
+    if not args.skip_bags_to_db:
+        save_hook = lambda: BagsSaver(args.keyspace, args.tables["bags"])
+    else:
+        save_hook = None
+
     return repos2bow_template(
         args,
         select=lambda: DzhigurdaFiles(args.dzhigurda),
-        cache_hook=lambda: MetadataSaver(args.keyspace, args.tables["meta"]),
-        save_hook=lambda: BagsSaver(args.keyspace, args.tables["bags"]))
+        cache_hook=cache_hook,
+        save_hook=save_hook)

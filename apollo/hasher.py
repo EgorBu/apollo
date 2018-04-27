@@ -99,6 +99,46 @@ class HashExploder:
                       value=bytearray(wmh[hti * self.band_size:(hti + 1) * self.band_size].data))
 
 
+class Reweighter:
+    def __init__(self, arguments):
+        log = logging.getLogger("reweighter")
+        self.extractors = {}
+        for ex in __extractors__.values():
+            if "%s_weight" % ex.NAME in dir(arguments) and \
+                            getattr(arguments, "%s_weight" % ex.NAME) != 1:
+                self.extractors[ex.NAME] = (ex.NAMESPACE, getattr(arguments,
+                                                                  "%s_weight" % ex.NAME))
+        if not self.extractors:
+            log.info("No extractors found, reweighting will be skipped")
+            return
+
+        err = "You must specify location of docfreq file to modify weights of features"
+        assert arguments.docfreq is not None, err
+        assert os.path.isfile(arguments.docfreq), "docfreq should be a file"
+
+        model = OrderedDocumentFrequencies().load(arguments.docfreq)
+        self.feature_mapping = model.order
+
+        self.weights = numpy.ones((len(self.feature_mapping),))
+
+        for ext in self.extractors:
+            namespace = self.extractors[ext][0]
+            ind = [self.feature_mapping[k] for k in self.feature_mapping
+                   if k.startswith(namespace)]
+            self.weights[ind] = self.extractors[ext][1]
+
+    def reweight(self, batch):
+        """
+        In-place modification of weights
+        :param batch:
+        :return:
+        """
+        if not self.extractors:
+            return batch
+        batch.matrix.data = batch.matrix.multiply(self.weights).tocsr().data.astype(numpy.float32)
+        return batch
+
+
 def modify_feature_weights(batches, arguments, **kwargs):
     log = logging.getLogger("hash")
     extractors = {}
@@ -153,6 +193,7 @@ def hash_batches(args):
     tables = args.tables
     gen = voc_size = None
     try:
+        reweighter = Reweighter(args)
         for i, bow in enumerate(loader):
             if voc_size is None:
                 voc_size = bow.matrix.shape[-1]
@@ -176,6 +217,7 @@ def hash_batches(args):
             # Modify features if needed
             # TODO(vmarkovtsev): port to the new structure
             # batches = modify_feature_weights(batches, args)
+            reweighter.reweight(bow)
             hashes = libMHCUDA.minhash_cuda_calc(gen, bow.matrix)
             job = [(k, h) for k, h in zip(bow.documents, hashes)]
             log.info("Saving the hashtables")
@@ -202,6 +244,8 @@ def hash_batches(args):
                 .mode("append") \
                 .options(table=tables["hashes"], keyspace=args.keyspace) \
                 .save()
+    except Exception as exc:
+        import pdb;pdb.set_trace()
     finally:
         libMHCUDA.minhash_cuda_fini(gen)
 

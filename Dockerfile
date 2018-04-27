@@ -2,7 +2,7 @@
 FROM nvidia/cuda:8.0-runtime
 
 # NVIDIA driver version must match the host!
-ENV DRIVER_VERSION 384.69
+ENV DRIVER_VERSION 390.48
 RUN mkdir -p /opt/nvidia && cd /opt/nvidia/ \
     && apt-get update && apt-get install -y wget module-init-tools && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && wget http://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run -O /opt/nvidia/driver.run \
@@ -16,7 +16,7 @@ RUN apt-get update && \
         libgomp1 libxml2 libxml2-dev zlib1g-dev \
         libsnappy1v5 libsnappy-dev libonig2 make gcc g++ curl openjdk-8-jre && \
     curl https://bootstrap.pypa.io/get-pip.py | python3 && \
-    pip3 install --no-cache-dir PyStemmer bblfsh py4j==0.10.4 modelforge parquet jinja2 libMHCUDA datasketch cassandra_driver python-igraph numpy humanize pygments && \
+    pip3 install --no-cache-dir PyStemmer bblfsh==2.9.5 py4j modelforge parquet jinja2 libMHCUDA==2.0.5 datasketch cassandra_driver python-igraph humanize pygments hyperopt sklearn pymongo networkx==1.11 && \
     apt-get remove -y python3-dev libxml2-dev libsnappy-dev zlib1g-dev make gcc g++ curl && \
     apt-get remove -y *-doc *-man >/dev/null && \
     apt-get autoremove -y && \
@@ -40,4 +40,4 @@ RUN echo '0.5.2' > /bundle/sourced/engine/version.txt && pip3 install -e /bundle
 RUN pip3 install -e /bundle/sourced/ml/
 RUN pip3 install --no-deps -e apollo/ && apollo warmup -s 'local[*]'
 
-ENTRYPOINT ["apollo"]
+CMD ["apollo"]
